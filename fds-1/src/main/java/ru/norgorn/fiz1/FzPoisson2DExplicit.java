@@ -6,15 +6,15 @@ import com.google.common.util.concurrent.AtomicDouble;
 
 public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 	
-	private double stopCriteria = 0.0001;
+	protected double stopCriteria = 0.0001;
 	
 	public final Fz2Values currentValues;
-	private final Fz2Values previousValues;
-	private final double Pe;
-	private final double Rp;
-	private final double C0;
-	private final double beta;
-	private final double L=1;
+	protected final Fz2Values previousValues;
+	protected final double Pe;
+	protected final double Rp;
+	protected final double C0;
+	protected final double beta;
+	protected final double L=1;
 	
 	private final boolean simpleCase = true;
 	
@@ -37,39 +37,11 @@ public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 			currentValues.p = new double[stepsX][stepsZ];
 			totalChange.set(0);
 			
-			iterateXExcludeBordersParallel((x,jj) -> {
+			iterateXExcludeBordersParallel((x,j) -> {
 				iterateZExcludeBorders((z,m) -> {
-					int j = jj;
-					double[][] p = previousValues.p;
-					double[][] c = previousValues.c;
-					double[][] k = currentValues.k;
-					double kk = k[j][m];
-					double cc = c[j][m];
-					double dkx = firstDerX(k, j, m);
-					double dkz = firstDerZ(k, j, m);
-					double dcx = firstDerX(c, j, m);
-					double d2cx = secondDerX(c, j, m);
-					double dcz = firstDerZ(c, j, m);
-					double d2cz = secondDerZ(c, j, m);
-					
-					
-					double a1 =  dkx/kk;
-					double a2 =  - Rp/Pe*(1/kk*dkx*dcx + d2cx + 1/kk*dkz*dcz + d2cz);
-					double a3 = + (p[j+1][m]+p[j-1][m])/dx/dx;
-					double a4 = + (p[j][m+1]+p[j][m-1])/dz/dz;
-					double val = a1 + a2 + a3 + a4;
-					
-					// REPLACED BY MORE SIMPLE CASE
-//					double a1 = 1/kk*dkx;
-//					double a2 = Rp/Pe*( 1/kk*z*dkx*dcx + z*d2cx + cc/kk*dkz + 2*dcz +z/kk*dkz*dcz + z*d2cz);
-//					//a2 = a2 - Rp/Pe*dkz/kk/beta/C0; // EXCLUDED FROM EQUATIONS
-//					double a3 = - dkx/kk * firstDerX(p, j, m) - dkz/kk * firstDerZ(p, j, m);
-//					double a4 = - (p[j+1][m]+p[j-1][m])/dx/dx;
-//					double a5 = - (p[j][m+1]+p[j][m-1])/dz/dz;
-//					double val = a1 + a2 + a3 + a4 + a5;
-					
-					double cur = currentValues.p[j][m] = dz*dz*dx*dx/2/(dz*dz+dx*dx) * val;
-					double prev = p[j][m];
+					double prev = previousValues.p[j][m];
+					double cur = solve(j, m);
+					currentValues.p[j][m] = cur;
 					totalChange.addAndGet(Math.abs(cur - prev));
 				});
 			});
@@ -88,25 +60,42 @@ public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 			iterations++;
 		}
 		while(totalChange.get() > stopCriteria && (iterations < 1_000 || totalChange.get() > stopCriteria*5));
-		System.out.println(iterations+" "+totalChange.get());
+		//System.out.println(iterations+" "+totalChange.get());
 	}
 
-	private void leftBoundaryCondition() {
+	protected double solve(Integer j, Integer m) {
+		int jj = j;
+		double[][] p = previousValues.p;
+		double[][] c = previousValues.c;
+		double[][] k = currentValues.k;
+		double kk = k[j][m];
+		double cc = c[j][m];
+		double dkx = firstDerX(k, j, m);
+		double dkz = firstDerZ(k, j, m);
+		double dcx = firstDerX(c, j, m);
+		double dcz = firstDerZ(c, j, m);
+		
+		
+		double a1 = 0;
+		double a2 =  - Rp/Pe*(1/kk*dkx*cc + dcx + 1/kk*dkz*cc + dcz);
+		double a3 = + (p[j+1][m]+p[j-1][m])/dx/dx;
+		double a4 = + (p[j][m+1]+p[j][m-1])/dz/dz;
+		double val = a1 + a2 + a3 + a4;
+		
+		double cur = dz*dz*dx*dx/2/(dz*dz+dx*dx) * val;
+		return cur;
+	}
+
+	protected void leftBoundaryCondition() {
 		currentValues.p[0] = new double[stepsZ];
-//		iterateZ((z,m) -> {
-//			currentValues.p[0][m] = currentValues.p[1][m] ; 	
-//		});
-		//Arrays.fill(currentValues.p[0], 1);
+		Arrays.fill(currentValues.p[0], 1);
 	}
 	
-	private void rightBoundaryCondition() {
+	protected void rightBoundaryCondition() {
 		currentValues.p[lastXInd] = new double[stepsZ];
-//		iterateZ((z,m) -> {
-//			currentValues.p[lastXInd][m] = currentValues.p[lastXInd-1][m] ; 	
-//		});
 	}
 	
-	private void bottomBoundaryCondition(int j) {
+	protected void bottomBoundaryCondition(int j) {
 		double[][] c = previousValues.c;
 		currentValues.p[j][0] = currentValues.p[j][1] - dz*Rp/Pe*(c[j][0]);
 		if(!simpleCase){
@@ -114,7 +103,7 @@ public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 		}
 	}
 	
-	private void topBoundaryCondition(int j) {
+	protected void topBoundaryCondition(int j) {
 		double[][] c = previousValues.c;
 		currentValues.p[j][lastZInd] = dz*Rp/Pe*(c[j][lastZInd] + 1) - currentValues.p[j][lastZInd-1];
 		if(!simpleCase){

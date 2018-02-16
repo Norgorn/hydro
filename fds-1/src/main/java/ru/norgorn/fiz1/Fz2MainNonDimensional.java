@@ -11,12 +11,12 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	
 	public static double C0 = 0.2;
 	public static double Pe = 100;
-	public static double Fi = 2;
-	public static double Q = 2;
-	public static double Rp = 25;
+	public static double Fi = 1;
+	public static double Q = 1.5;
+	public static double Rp = 100;
 	public static double beta = 0.1d;
-	public static double a = 5;
-	public static double b = 5;
+	public static double a = 50;
+	public static double b = 0;
 	public static double L = 1;
 	
 	
@@ -29,12 +29,14 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	PrintWriter cOut;
 	PrintWriter qOut;
 	PrintWriter kOut;
+	PrintWriter vxOut;
+	PrintWriter vzOut;
 	PrintWriter backflowOut;
 	static long start = System.nanoTime();
 
 	public static void main(String[] args) {
 		try{
-			new Fz2MainNonDimensional().run();	
+			new Fz2MainNonDimensional().run();
 		} catch(Exception e){
 			e.printStackTrace();
 		}
@@ -43,7 +45,7 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	@Override
 	public void run(){
 		maxT = 0.2;
-		stepsT = 200_000;
+		stepsT = 100_000;
 		stepsX = 50;
 		stepsZ = 50;
 		init();
@@ -52,6 +54,8 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 			String cPath = cSavePath();
 			String qPath = qSavePath();
 			String kPath = kSavePath();
+			String vxPath = vxSavePath();
+			String vzPath = vzSavePath();
 			String backPath = backSavePath();
 			new PrintWriter(cPath).close();
 			new PrintWriter(qPath).close();
@@ -59,6 +63,8 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 			cOut = new PrintWriter(cPath);
 			qOut = new PrintWriter(qPath);
 			kOut = new PrintWriter(kPath);
+			vxOut = new PrintWriter(vxPath);
+			vzOut = new PrintWriter(vzPath);
 			backflowOut = new PrintWriter(backPath);
 		} catch (Throwable e){
 			e.printStackTrace();
@@ -83,9 +89,9 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 		//int stepNumToShow = (stepsT/stepsT);
 		iterateT((t,i)->{
 			if( i> 1 && i % stepNumToShow  == 0 ){
-				int point = 40;
+				int point = 10;
 				printRow(previousValues.c[point], i / stepNumToShow);
-				printRow(previousValues.backflow[point], i / stepNumToShow, formatPrecise);
+//				printRow(previousValues.backflow[point], i / stepNumToShow, formatPrecise);
 //				printRow(previousValues.q[point], i / stepNumToShow);
 //				printRow(previousValues.p[point], i / stepNumToShow);
 //				printRow(previousValues.vx[point], i / stepNumToShow);
@@ -94,6 +100,8 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 				saveRow(previousValues.c, cOut);
 				saveRow(previousValues.q, qOut);
 				saveRow(previousValues.k, kOut);
+				saveRow(previousValues.vx, vxOut);
+				saveRow(previousValues.vz, vzOut);
 				saveRow(previousValues.backflow, backflowOut, formatPrecise);
 			}
 			
@@ -121,7 +129,7 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 
 			currentValues.p = next_p();
 			
-			iterateX((x,j) -> {
+			iterateXParallel((x,j) -> {
 				iterateZ((z,m)->{
 					next_v(j, m, x, z);
 				});
@@ -214,9 +222,9 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 		
 		double vx;
 		if(j == 0)
-			vx = Pe;
+			vx = + Pe;
 		else
-			vx = Pe*k*(1 + firstDerX(p, j, m)) - Rp*k*firstDerX(cc, j, m);
+			vx = - Pe*k*(firstDerX(p, j, m)) + Rp*k*c;
 		//double vx = Pe*k*(1 - firstDerX(p, j, m)) + Rp*k*z*firstDerX(cc, j, m); // Complicated version, excluded now
 		currentValues.vx[j][m] = vx;
 		if(vx <0)
@@ -226,7 +234,7 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 			currentValues.vz[j][m] = 0;
 		}
 		else{
-			double vz =  + k*Pe * firstDerZ(p, j, m) - Rp*k*firstDerZ(cc, j, m); 
+			double vz = - Pe*k*firstDerZ(p, j, m) + Rp*k*c; 
 			//double vz =  - k*Pe * firstDerZ(p, j, m) + Rp*k*c + Rp*k*z*firstDerZ(cc, j, m); // Complicated version, excluded now
 			//vx = vx - Rp*k/beta/C0;   // EXCLUDED FROM EQUATIONS
 			currentValues.vz[j][m] = vz;
@@ -276,6 +284,18 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\backflow_"+parametersString()+".txt";
 	}
 	
+	protected String vSavePath() {
+		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\v_"+parametersString()+".txt";
+	}
+	
+	protected String vxSavePath() {
+		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\vx_"+parametersString()+".txt";
+	}
+	
+	protected String vzSavePath() {
+		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\vz_"+parametersString()+".txt";
+	}
+	
 	private String parametersString() {
 		return "C0="+C0+"_Fi="+Fi+"_Q="+Q+"_a="+a+"_b="+b+"_Pe="+Pe+"_Rp="+Rp+"_beta="+beta;
 	}
@@ -295,6 +315,29 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	protected void saveRow(double[][] row, PrintWriter out) {
 		saveRow(row, out, formatGeneral);
 	}
+	
+	protected void saveVectorRow(double[][] vx, double[][] vz, PrintWriter out) {
+		String[][] matrix = new String[stepsX][stepsZ];
+		iterateX((x,j)-> {
+			iterateZ((z,m)-> {
+				matrix[j][m] = "{"+formatGeneral.format(vx[j][m]).replaceAll(",", "\\.")
+						+","+formatGeneral.format(vz[j][m]).replaceAll(",", "\\.")+"}"; 
+			});
+		});
+		
+		String rowStr = Arrays.stream(matrix)
+			.map(r ->Arrays.stream(r).collect(Collectors.joining(",")))
+			.collect(Collectors.joining(","));
+		
+		try {
+			out.println(rowStr);
+			out.flush();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
 	
 	protected void saveRow(double[][] row, PrintWriter out, DecimalFormat format) {
 		StringBuilder builder = new StringBuilder();
