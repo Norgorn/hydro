@@ -37,14 +37,6 @@ public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 			currentValues.p = new double[stepsX][stepsZ];
 			totalChange.set(0);
 			
-			iterateXExcludeBordersParallel((x,j) -> {
-				iterateZExcludeBorders((z,m) -> {
-					double prev = previousValues.p[j][m];
-					double cur = solve(j, m);
-					currentValues.p[j][m] = cur;
-					totalChange.addAndGet(Math.abs(cur - prev));
-				});
-			});
 			iterateX((x,j) -> {
 				if(j == 0)
 					leftBoundaryCondition();
@@ -55,16 +47,26 @@ public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 					topBoundaryCondition(j);
 				}
 			});
+			iterateXExcludeBordersParallel((x,j) -> {
+				iterateZExcludeBorders((z,m) -> {
+					double prev = previousValues.p[j][m];
+					double cur = solve(j, m);
+					currentValues.p[j][m] = cur;
+					totalChange.addAndGet(Math.abs(cur - prev));
+				});
+			});
+			
+			// Right boundary condition
+			currentValues.p[lastXInd] = currentValues.p[lastXInd - 1];
 			
 			previousValues.p = currentValues.p;
 			iterations++;
 		}
-		while(totalChange.get() > stopCriteria && (iterations < 1_000 || totalChange.get() > stopCriteria*5));
-		//System.out.println(iterations+" "+totalChange.get());
+		while(totalChange.get() > stopCriteria && (iterations < 5_000 || totalChange.get() > stopCriteria*5));
+		System.out.println(iterations+" "+totalChange.get());
 	}
 
 	protected double solve(Integer j, Integer m) {
-		int jj = j;
 		double[][] p = previousValues.p;
 		double[][] c = previousValues.c;
 		double[][] k = currentValues.k;

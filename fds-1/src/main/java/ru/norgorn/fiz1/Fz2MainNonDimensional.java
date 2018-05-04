@@ -9,14 +9,17 @@ import java.util.stream.Collectors;
 
 public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	
+	private static final String basePath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\";
+	//private static final String basePath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd_iteration_2\\";
+	
 	public static double C0 = 0.2;
-	public static double Pe = 100;
-	public static double Fi = 1;
-	public static double Q = 1.5;
-	public static double Rp = 100;
+	public static double Pe = 1000;
+	public static double Fi = 3;
+	public static double Q = 5;
+	public static double Rp = 25;
 	public static double beta = 0.1d;
-	public static double a = 50;
-	public static double b = 0;
+	public static double a = 15;
+	public static double b = 19;
 	public static double L = 1;
 	
 	
@@ -36,7 +39,17 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 
 	public static void main(String[] args) {
 		try{
-			new Fz2MainNonDimensional().run();
+			double[] rps = new double[]{10, 15, 20, 25, 30, 40, 45, 50, 55};
+			//double[] rps = new double[]{30};
+			//double[] pes = new double[]{10, 50, 100, 150, 200, 275, 350, 500, 750, 1000};
+			double[] pes = new double[]{100};
+			for(double rp : rps){
+				Rp = rp;
+				for(double pe : pes){
+					Pe = pe;
+					new Fz2MainNonDimensional().run();	
+				}
+			}
 		} catch(Exception e){
 			e.printStackTrace();
 		}
@@ -44,8 +57,8 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	
 	@Override
 	public void run(){
-		maxT = 0.2;
-		stepsT = 100_000;
+		maxT = 0.1;
+		stepsT = 50_000;
 		stepsX = 50;
 		stepsZ = 50;
 		init();
@@ -203,7 +216,7 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	}
 	
 	private double[][] next_p() {
-		FzPoisson2DExplicit poisson = new FzPoisson2DExplicit(previousValues, currentValues, Pe, Rp, C0, beta);
+		FzPoisson2DExplicit poisson = new FzPoisson2DExplicitPsi(previousValues, currentValues, Pe, Rp, C0, beta);
 		poisson.maxT = maxT;
 		poisson.stepsT = stepsT;
 		poisson.stepsX = stepsX;
@@ -224,19 +237,18 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 		if(j == 0)
 			vx = + Pe;
 		else
-			vx = - Pe*k*(firstDerX(p, j, m)) + Rp*k*c;
-		//double vx = Pe*k*(1 - firstDerX(p, j, m)) + Rp*k*z*firstDerX(cc, j, m); // Complicated version, excluded now
+			//vx = - Pe*k*(firstDerX(p, j, m)) + Rp*k*c;
+			vx = firstDerZ(p, j, m);
 		currentValues.vx[j][m] = vx;
-		if(vx <0)
+		if(vx <0 )
 			getClass();
 		
 		if(m ==0 || m==lastZInd){
 			currentValues.vz[j][m] = 0;
 		}
 		else{
-			double vz = - Pe*k*firstDerZ(p, j, m) + Rp*k*c; 
-			//double vz =  - k*Pe * firstDerZ(p, j, m) + Rp*k*c + Rp*k*z*firstDerZ(cc, j, m); // Complicated version, excluded now
-			//vx = vx - Rp*k/beta/C0;   // EXCLUDED FROM EQUATIONS
+			//double vz = - Pe*k*firstDerZ(p, j, m) + Rp*k*c;
+			double vz = - firstDerX(p, j, m); 
 			currentValues.vz[j][m] = vz;
 		}
 	}
@@ -269,31 +281,31 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	}
 	
 	protected String cSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\c_"+parametersString()+".txt";
+		return basePath+"c_"+parametersString()+".txt";
 	}
 
 	protected String qSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\q_"+parametersString()+".txt";
+		return basePath+"q_"+parametersString()+".txt";
 	}
 	
 	protected String kSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\k_"+parametersString()+".txt";
+		return basePath+"k_"+parametersString()+".txt";
 	}
 	
 	protected String backSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\backflow_"+parametersString()+".txt";
+		return basePath+"backflow_"+parametersString()+".txt";
 	}
 	
 	protected String vSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\v_"+parametersString()+".txt";
+		return basePath+"v_"+parametersString()+".txt";
 	}
 	
 	protected String vxSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\vx_"+parametersString()+".txt";
+		return basePath+"vx_"+parametersString()+".txt";
 	}
 	
 	protected String vzSavePath() {
-		return "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\vz_"+parametersString()+".txt";
+		return basePath+"vz_"+parametersString()+".txt";
 	}
 	
 	private String parametersString() {
