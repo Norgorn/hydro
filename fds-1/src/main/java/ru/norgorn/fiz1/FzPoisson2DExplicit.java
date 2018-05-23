@@ -13,19 +13,17 @@ public class FzPoisson2DExplicit extends FzDerivatives implements Runnable  {
 	protected final double Pe;
 	protected final double Rp;
 	protected final double C0;
-	protected final double beta;
 	protected final double L=1;
 	
 	private final boolean simpleCase = true;
 	
 	public FzPoisson2DExplicit(Fz2Values previousValues, Fz2Values currentValues,
-			double Pe, double Rp, double C0, double beta){
+			double Pe, double Rp, double C0){
 		this.previousValues = previousValues;
 		this.currentValues = currentValues;
 		this.Pe = Pe;
 		this.Rp = Rp;
 		this.C0 = C0;
-		this.beta = beta;
 	}
 
 	@Override

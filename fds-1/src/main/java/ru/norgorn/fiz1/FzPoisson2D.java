@@ -1,6 +1,5 @@
 package ru.norgorn.fiz1;
 
-import static  ru.norgorn.fiz1.Fz2MainNonDimensional.printRow;
 
 import java.awt.RadialGradientPaint;
 import java.util.function.BiFunction;

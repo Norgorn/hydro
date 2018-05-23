@@ -1,9 +1,15 @@
 package ru.norgorn.fiz1;
 
-public class FzPoisson2DExplicitPsi extends FzPoisson2DExplicit {
+public class FzPoisson2DExplicitPsiWithTemperature extends FzPoisson2DExplicit {
+	
+	private final double Ra;
+	private final double Le;
 
-	public FzPoisson2DExplicitPsi(Fz2Values previousValues, Fz2Values currentValues, double Pe, double Rp, double C0) {
+	public FzPoisson2DExplicitPsiWithTemperature(Fz2Values previousValues, Fz2Values currentValues, double Pe, double Rp,
+			double Ra, double Le, double C0) {
 		super(previousValues, currentValues, Pe, Rp, C0);
+		this.Ra = Ra;
+		this.Le = Le;
 	}
 	
 	@Override
@@ -14,6 +20,8 @@ public class FzPoisson2DExplicitPsi extends FzPoisson2DExplicit {
 		double kk = k[j][m];
 		double dcx = firstDerX(c, j, m);
 		double dcz = firstDerZ(c, j, m);
+		double dtx = firstDerX(c, j, m);
+		double dtz = firstDerZ(c, j, m);
 		double dkx = firstDerX(k, j, m);
 		double dkz = firstDerZ(k, j, m);
 		
@@ -25,9 +33,9 @@ public class FzPoisson2DExplicitPsi extends FzPoisson2DExplicit {
 		double a1 = - Rp*kk*(dcz - dcx);
 		double a2 = + px/dx;
 		double a3 = + pz/dz;
-		double val = a1 + a2 + a3;
 		double a4 = (dkx*dpx + dkz*dpz)/kk;
-		val +=a4;
+		double a5 = - Le*Ra*kk*(dtz - dtx);
+		double val = a1 + a2 + a3 + a4 + a5;
 		
 		double cur = dz*dz*dx*dx/2/(dz*dz+dx*dx) * val;
 		return cur;

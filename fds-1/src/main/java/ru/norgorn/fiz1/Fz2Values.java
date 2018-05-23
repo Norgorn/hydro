@@ -7,6 +7,7 @@ public class Fz2Values {
 	public final double[][] vz;
 	public final double[][] q;
 	public final double[][] c;
+	public final double[][] t;
 	public final double[][] backflow;
 	
 	
@@ -17,6 +18,7 @@ public class Fz2Values {
 		vz = new double[stepsX][stepsZ];
 		q = new double[stepsX][stepsZ];
 		c = new double[stepsX][stepsZ];
+		t = new double[stepsX][stepsZ];
 		backflow = new double[stepsX][stepsZ];
 	}
 }

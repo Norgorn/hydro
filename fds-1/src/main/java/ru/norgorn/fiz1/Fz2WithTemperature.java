@@ -2,20 +2,17 @@ package ru.norgorn.fiz1;
 
 import static java.lang.Math.pow;
 
-import java.text.DecimalFormat;
+public class Fz2WithTemperature extends FzDerivatives implements Runnable {
 
-public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
-	
-	private static final String basePath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\";
-	//private static final String basePath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd_iteration_2\\";
-	
-	public static DecimalFormat formatPrecise = new DecimalFormat("#0.00000000");
-	
+	private static final String basePath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd_t\\";
+
 	public static double C0 = 0.2;
 	public static double Fi = 3;
 	public static double Q = 5;
-	public static double Rp = 25;
-	public static double Pe = 1000;
+	public static double Rp = 30;
+	public static double Pe = 100;
+	public static double Ra = 30;
+	public static double Le = 0.1;
 	public static double a = 15;
 	public static double b = 19;
 	public static double L = 1;
@@ -31,27 +28,27 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	Fz2Printer vxOut;
 	Fz2Printer vzOut;
 	Fz2Printer backflowOut;
-
+	
 	public static void main(String[] args) {
 		try{
 			//double[] rps = new double[]{10, 15, 20, 25, 30, 40, 45, 50, 55};
-			double[] rps = new double[]{30};
+			double[] rps = new double[]{-30};
 			//double[] pes = new double[]{10, 50, 100, 150, 200, 275, 350, 500, 750, 1000};
 			double[] pes = new double[]{100};
 			for(double rp : rps){
 				Rp = rp;
 				for(double pe : pes){
 					Pe = pe;
-					new Fz2MainNonDimensional().run();	
+					new Fz2WithTemperature().run();	
 				}
 			}
 		} catch(Exception e){
 			e.printStackTrace();
 		}
 	}
-	
+
 	@Override
-	public void run(){
+	public void run() {
 		maxT = 0.1;
 		stepsT = 50_000;
 		stepsX = 50;
@@ -69,6 +66,7 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 		iterateX((x,j) -> {
 			iterateZ((z,m)-> {
 				previousValues.c[j][m] = initialState(x,z);
+				previousValues.t[j][m] = initialState(x,z);
 				previousValues.q[j][m] = 0;
 				previousValues.vx[j][m] = 0;
 				previousValues.vz[j][m] = 0;
@@ -92,12 +90,13 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 //				cOut.printRow(previousValues.vx[point], i / stepNumToShow);
 //				cOut.printRow(previousValues.vz[point], i / stepNumToShow);
 //				cOut.printRow(previousValues.k[point], i / stepNumToShow);
+				
 				cOut.saveRow(previousValues.c);
 				qOut.saveRow(previousValues.q);
 				kOut.saveRow(previousValues.k);
 				vxOut.saveRow(previousValues.vx);
 				vzOut.saveRow(previousValues.vz);
-				backflowOut.saveRow(previousValues.backflow, formatPrecise);
+				backflowOut.saveRow(previousValues.backflow, Fz2MainNonDimensional.formatPrecise);
 			}
 			
 			currentValues = new Fz2Values(stepsX, stepsZ);
@@ -132,18 +131,38 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 			iterateXParallel((x,j)->{
 				iterateZ((z,m)->{
 					if(j==0)
-						currentValues.c[j][m] = leftBoundaryState(previousValues.c, z, m);
+						currentValues.c[j][m] = 1;
 					else if ( j==lastXInd)
-						currentValues.c[j][m] = rightBoundaryState(previousValues.c, z, m);
+						currentValues.c[j][m] = currentValues.c[lastXInd-1][m];
 					else if ( m==0){
-						currentValues.c[j][m] = bottomBoundaryState(previousValues.c, z, j);
+						currentValues.c[j][m] = currentValues.c[j][1];
 					}
 					else if ( m==lastZInd){
-						currentValues.c[j][m] = topBoundaryState(previousValues.c, z, j);
+						currentValues.c[j][m] = currentValues.c[j][lastZInd-1];
 					}
 					else{
 						double r = next_c(j, m);
 						currentValues.c[j][m] = r;
+					}
+				});
+			});
+			
+			
+			iterateXParallel((x,j)->{
+				iterateZ((z,m)->{
+					if(j==0)
+						currentValues.t[j][m] = 1;
+					else if ( j==lastXInd)
+						currentValues.t[j][m] = currentValues.t[lastXInd-1][m];
+					else if ( m==0){
+						currentValues.t[j][m] = currentValues.t[j][1];
+					}
+					else if ( m==lastZInd){
+						currentValues.t[j][m] = currentValues.t[j][lastZInd-1];
+					}
+					else{
+						double r = next_t(j, m);
+						currentValues.t[j][m] = r;
 					}
 				});
 			});
@@ -164,7 +183,7 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 			timeStepFinished(i,t);
 		});
 	}
-
+	
 	protected void timeStepFinished(int i, double t) {
 	}
 	
@@ -174,22 +193,6 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 			return 1;
 		return 0;
 	}
-
-	double leftBoundaryState(double[][] c, double z, int m){
-		return 1;
-	}
-	
-	double rightBoundaryState(double[][] c, double z, int m){
-		return c[lastXInd-1][m];
-	}
-	
-	private double topBoundaryState(double[][] c, double z, int j){
-		return c[j][lastZInd-1];
-	}
-	
-	private double bottomBoundaryState(double[][] c, double z, int j){
-		return c[j][1];
-	}
 	
 	protected double next_k(int j, int m) {
 		double qq = previousValues.q[j][m];
@@ -198,7 +201,8 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 	}
 	
 	private double[][] next_p() {
-		FzPoisson2DExplicit poisson = new FzPoisson2DExplicitPsi(previousValues, currentValues, Pe, Rp, C0);
+		FzPoisson2DExplicit poisson = new FzPoisson2DExplicitPsiWithTemperature(previousValues, currentValues, Pe, Rp,
+				Ra, Le, C0);
 		poisson.maxT = maxT;
 		poisson.stepsT = stepsT;
 		poisson.stepsX = stepsX;
@@ -256,7 +260,25 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 		return r;
 	}
 	
+	protected double next_t(int j, int m) {
+		double[][] t = previousValues.t;
+		double[][] vx = previousValues.vx;
+		double[][] vz = previousValues.vz;
+		double q = previousValues.q[j][m];
+		
+		double dtx  = firstDerX(t, j, m);
+		double dtz  = firstDerZ(t, j, m);
+		double k2 = dt*Le*(secondDerX(t,j,m)+secondDerZ(t,j,m));
+		double k3 = - dt/C0/(Fi-q)*(vx[j][m]*dtx + vz[j][m]*dtz);
+		double kt = t[j][m];
+		double r = kt + k2 + k3;
+		if(r <0)
+			return 0;
+		return r;
+		
+	}
+	
 	private String parametersString() {
-		return "C0="+C0+"_Fi="+Fi+"_Q="+Q+"_a="+a+"_b="+b+"_Pe="+Pe+"_Rp="+Rp+"_beta=0.1";
+		return "C0="+C0+"_Fi="+Fi+"_Q="+Q+"_a="+a+"_b="+b+"_Pe="+Pe+"_Rp="+Rp+"_Ra="+Ra+"_Le="+Le;
 	}
 }
