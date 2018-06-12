@@ -12,10 +12,9 @@ public class Fz2WithTemperature extends FzDerivatives implements Runnable {
 	public static double Rp = 30;
 	public static double Pe = 100;
 	public static double Ra = 30;
-	public static double Le = 0.1;
+	public static double Le = 1;
 	public static double a = 15;
 	public static double b = 19;
-	public static double L = 1;
 	
 	
 	Fz2Values currentValues;
@@ -31,15 +30,20 @@ public class Fz2WithTemperature extends FzDerivatives implements Runnable {
 	
 	public static void main(String[] args) {
 		try{
-			//double[] rps = new double[]{10, 15, 20, 25, 30, 40, 45, 50, 55};
-			double[] rps = new double[]{-30};
+			double[] rps = new double[]{10, 15, 20, 25, 30, 40, 45, 50, 55};
+			//double[] rps = new double[]{30};
 			//double[] pes = new double[]{10, 50, 100, 150, 200, 275, 350, 500, 750, 1000};
 			double[] pes = new double[]{100};
+			//double[] ras = new double[]{-4, -6, -8};
+			double[] ras = new double[]{2};
 			for(double rp : rps){
 				Rp = rp;
 				for(double pe : pes){
 					Pe = pe;
-					new Fz2WithTemperature().run();	
+					for(double ra : ras){
+						Ra = ra;
+						new Fz2WithTemperature().run();	
+					}
 				}
 			}
 		} catch(Exception e){
@@ -133,17 +137,17 @@ public class Fz2WithTemperature extends FzDerivatives implements Runnable {
 					if(j==0)
 						currentValues.c[j][m] = 1;
 					else if ( j==lastXInd)
-						currentValues.c[j][m] = currentValues.c[lastXInd-1][m];
+						currentValues.c[j][m] = previousValues.c[lastXInd-1][m];
 					else if ( m==0){
-						currentValues.c[j][m] = currentValues.c[j][1];
+						currentValues.c[j][m] = previousValues.c[j][1];
 					}
 					else if ( m==lastZInd){
-						currentValues.c[j][m] = currentValues.c[j][lastZInd-1];
-					}
-					else{
+						currentValues.c[j][m] = previousValues.c[j][lastZInd-1];
+					}	
+				});
+				iterateZExcludeBorders((z,m)->{
 						double r = next_c(j, m);
 						currentValues.c[j][m] = r;
-					}
 				});
 			});
 			
@@ -153,17 +157,17 @@ public class Fz2WithTemperature extends FzDerivatives implements Runnable {
 					if(j==0)
 						currentValues.t[j][m] = 1;
 					else if ( j==lastXInd)
-						currentValues.t[j][m] = currentValues.t[lastXInd-1][m];
+						currentValues.t[j][m] = previousValues.t[lastXInd-1][m];
 					else if ( m==0){
-						currentValues.t[j][m] = currentValues.t[j][1];
+						currentValues.t[j][m] = previousValues.t[j][1];
 					}
 					else if ( m==lastZInd){
-						currentValues.t[j][m] = currentValues.t[j][lastZInd-1];
-					}
-					else{
-						double r = next_t(j, m);
-						currentValues.t[j][m] = r;
-					}
+						currentValues.t[j][m] = previousValues.t[j][lastZInd-1];
+					}	
+				});
+				iterateZExcludeBorders((z,m)->{
+					double r = next_t(j, m);
+					currentValues.t[j][m] = r;
 				});
 			});
 			
@@ -255,7 +259,9 @@ public class Fz2WithTemperature extends FzDerivatives implements Runnable {
 		double k3 = - dt*(vx[j][m]*dcx + vz[j][m]*dcz);
 		double kc = c[j][m];
 		double r = kc + k1+ k2 + k3;
-		if(r <0)
+		if(r < -0.000001)
+			return 0;
+		if(r < 0)
 			return 0;
 		return r;
 	}

@@ -34,8 +34,8 @@ public class Fz2MainNonDimensional extends FzDerivatives implements Runnable{
 
 	public static void main(String[] args) {
 		try{
-			//double[] rps = new double[]{10, 15, 20, 25, 30, 40, 45, 50, 55};
-			double[] rps = new double[]{30};
+			double[] rps = new double[]{10, 15, 20, 25, 30, 40, 45, 50, 55};
+			//double[] rps = new double[]{30};
 			//double[] pes = new double[]{10, 50, 100, 150, 200, 275, 350, 500, 750, 1000};
 			double[] pes = new double[]{100};
 			for(double rp : rps){

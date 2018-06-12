@@ -26,22 +26,9 @@ public class Fz2MainIntegrationalValuesCounter {
 		
 		
 		List<String> paramStrings = Arrays.asList(
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=10.0_beta=0.1"
-//				,"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=15.0_beta=0.1"
-//				,"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=20.0_beta=0.1"
-//				,"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=25.0_beta=0.1"
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=30.0_beta=0.1"
-//				,"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=40.0_beta=0.1"
-//				,"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=45.0_beta=0.1"
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=50.0_beta=0.1"
-//				,"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=55.0_beta=0.1"
-				
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=10.0_Rp=30.0_beta=0.1"
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=50.0_Rp=30.0_beta=0.1"
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=30.0_beta=0.1"
-				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=150.0_Rp=30.0_beta=0.1"
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=200.0_Rp=30.0_beta=0.1"
-//				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=275.0_Rp=30.0_beta=0.1"
+				//"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=30.0_Ra=-4.0_Le=0.5"
+				//"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=30.0_Ra=-6.0_Le=0.5"
+				"C0=0.2_Fi=3.0_Q=5.0_a=15.0_b=19.0_Pe=100.0_Rp=30.0_Ra=-8.0_Le=0.5"
 		);
 		
 		List<Fz2integrationalValues> results = IntStream.range(0, timeSteps+1)
@@ -51,14 +38,14 @@ public class Fz2MainIntegrationalValuesCounter {
 		
 		paramStrings.forEach(params -> {
 			try {
-				String cPath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\c_"+params+".txt";
-				String qPath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\q_"+params+".txt";
-				String vxPath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd\\vx_"+params+".txt";
+				String cPath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd_t\\c_"+params+".txt";
+				String qPath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd_t\\q_"+params+".txt";
+				String vxPath = "C:\\Users\\Sunny\\Documents\\Wolfram Mathematica\\2d_nd_t\\vx_"+params+".txt";
 				
 				processLines(cPath, (i,values) -> {results.get(i).avgC = lastColumnAverage(xSteps, zSteps, values);});
 				processLines(cPath, (i,values) -> {results.get(i).middleDropC = middleColumnDrop(xSteps, zSteps, values);});
 				processLines(cPath, (i,values) -> {results.get(i).lastDropC = lastColumnDrop(xSteps, zSteps, values);});
-				processLines(qPath, (i,values) -> {results.get(i).totalQ = totalSum(values);});
+				processLines(qPath, (i,values) -> {results.get(i).totalQ = totalSumScaled(values);});
 				processLines(vxPath, (i,values) -> {results.get(i).avgV = lastColumnAverage(xSteps, zSteps, values);});
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -106,8 +93,8 @@ public class Fz2MainIntegrationalValuesCounter {
 		return d;
 	}
 
-	protected double totalSum(List<String> values) {
-		return values.stream().mapToDouble(Double::parseDouble).sum();
+	protected double totalSumScaled(List<String> values) {
+		return values.stream().mapToDouble(Double::parseDouble).sum() / 2500;
 //		return StreamEx.ofSubLists(values, xSteps)
 //			.mapToDouble(column -> column.stream().mapToDouble(Double::parseDouble).sum())
 //			.sum();
